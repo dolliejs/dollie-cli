@@ -1,7 +1,6 @@
-import DollieGenerator from './generator';
-import downloadGitRepo from './utils/download';
-import readJson from './utils/read-json';
-import traverse from './utils/traverse';
+import { DollieGenerator } from '@dollie/core';
+import Environment from 'yeoman-environment';
 
-export { downloadGitRepo, readJson, traverse };
-export default DollieGenerator;
+const env = Environment.createEnv();
+env.registerStub(DollieGenerator, 'dollie');
+env.run('dollie', null);
