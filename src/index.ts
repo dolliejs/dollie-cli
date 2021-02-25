@@ -2,10 +2,9 @@ import path from 'path';
 import fs from 'fs-extra';
 import { program } from 'commander';
 import _ from 'lodash';
-import dollie, { parseComposeConfig, log } from '@dollie/core';
+import dollie, { parseComposeConfig, log, parseSnakeToKebab } from '@dollie/core';
 import constantsConfig from '@dollie/core/lib/constants';
 import { DollieBaseAppConfig, ExportedConstants, Plugin } from '@dollie/core/lib/interfaces';
-import { parseCamelToSnake, parseSnakeToKebab } from './utils/parsers';
 
 const packageJson = fs.readJSONSync(path.resolve(__dirname, '../package.json'));
 
