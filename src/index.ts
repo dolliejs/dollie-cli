@@ -27,28 +27,19 @@ for (const constantKey of constantKeys) {
 program.option('-p, --plugins [plugin...]', 'specify an array of plugin file pathname');
 
 program.action(async (...result) => {
-  const props = result[0] || {} as DollieBaseAppConfig;
-  const constants = Object.keys(_.omit(props, ['plugins'])).reduce((result, currentKey) => {
-    const currentSnakeKey = parseCamelToSnake(currentKey);
-    const currentValue = (props[0] || {})[currentKey];
-    if (currentSnakeKey && currentValue !== undefined) {
-      const snakeKey = currentSnakeKey.toUpperCase() as keyof ExportedConstants;
-      if (snakeKey === 'SCAFFOLD_TIMEOUT') {
-        result[snakeKey] = parseInt(currentValue, 10) || 10000;
-      } else {
-        result[snakeKey] = currentValue;
-      }
-    }
-    return result;
-  }, {}) as ExportedConstants;
+  const rawProps = (result[0] || {});
+  const props = _.omit(rawProps, ['plugins']) as Partial<DollieBaseAppConfig>;
+  if (props.scaffoldTimeout !== undefined) {
+    props.scaffoldTimeout = parseInt(rawProps.scaffoldTimeout, 10);
+  }
   try {
-    const pluginPaths = (_.isArray(props.plugins) ? props.plugins : []) as Array<string>;
+    const pluginPaths = (_.isArray(rawProps.plugins) ? rawProps.plugins : []) as Array<string>;
     const plugins = pluginPaths.map((pluginPath) => ({
       pathname: pluginPath,
       executor: require(path.resolve(pluginPath)),
     })) as Array<Plugin>;
     await dollie.interactive({
-      constants,
+      ...props,
       plugins,
     });
   } catch (e) {
