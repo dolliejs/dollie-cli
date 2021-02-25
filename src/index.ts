@@ -1,9 +1,10 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { program } from 'commander';
+import _ from 'lodash';
 import dollie, { parseComposeConfig, log } from '@dollie/core';
 import constantsConfig from '@dollie/core/lib/constants';
-import { ExportedConstants } from '@dollie/core/lib/interfaces';
+import { DollieBaseAppConfig, ExportedConstants, Plugin } from '@dollie/core/lib/interfaces';
 import { parseCamelToSnake, parseSnakeToKebab } from './utils/parsers';
 
 const packageJson = fs.readJSONSync(path.resolve(__dirname, '../package.json'));
@@ -23,8 +24,11 @@ for (const constantKey of constantKeys) {
   }
 }
 
-program.action(async (...props) => {
-  const constants = Object.keys(props[0] || {}).reduce((result, currentKey) => {
+program.option('-p, --plugins [plugin...]', 'specify an array of plugin file pathname');
+
+program.action(async (...result) => {
+  const props = result[0] || {} as DollieBaseAppConfig;
+  const constants = Object.keys(_.omit(props, ['plugins'])).reduce((result, currentKey) => {
     const currentSnakeKey = parseCamelToSnake(currentKey);
     const currentValue = (props[0] || {})[currentKey];
     if (currentSnakeKey && currentValue !== undefined) {
@@ -38,8 +42,14 @@ program.action(async (...props) => {
     return result;
   }, {}) as ExportedConstants;
   try {
+    const pluginPaths = (_.isArray(props.plugins) ? props.plugins : []) as Array<string>;
+    const plugins = pluginPaths.map((pluginPath) => ({
+      pathname: pluginPath,
+      executor: require(path.resolve(pluginPath)),
+    })) as Array<Plugin>;
     await dollie.interactive({
       constants,
+      plugins,
     });
   } catch (e) {
     log.error(e.toString());
@@ -51,11 +61,11 @@ program.command('compose <config>').action(async (config: string) => {
   const configFilePath = path.join(process.cwd(), config);
 
   if (!fs.existsSync(configFilePath)) {
-    console.error(`error: file not found, stating ${config}`);
+    log.error(`error: file not found, stating ${config}`);
     process.exit(1);
   }
   if (!fs.statSync(configFilePath).isFile()) {
-    console.error(`error: ${config} is not a file`);
+    log.error(`error: ${config} is not a file`);
     process.exit(1);
   }
 
